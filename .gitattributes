@@ -1,0 +1,4 @@
+*.html linguist-language=Scala
+*.py linguist-language=Scala
+visualization/* linguist-vendored
+

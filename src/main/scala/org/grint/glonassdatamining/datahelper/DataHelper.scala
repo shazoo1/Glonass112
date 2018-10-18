@@ -69,6 +69,13 @@ class DataHelper(sparkSession: SparkSession) {
             .schema(_dbscanSchema)
             .load(getPath("/output_0.003eps_3600min_250000rows.csv"))*/
 
+        _addressesWithGps = sparkSession.read
+          .format("jdbc")
+          .option("url", "jdbc:postgresql://localhost/callcenterdb?user=postgres&password=123")
+          .option("dbtable", "(SELECT id, addresstext, latitude::numeric, longitude::numeric from callcenter.addresses_with_gps) as t")
+          .load()
+        println(s"Loaded addressesWithGps table with ${_addressesWithGps.count()} rows")
+
         _cards = sparkSession.read
             .format("jdbc")
             .option("url", "jdbc:postgresql://localhost/callcenterdb?user=postgres&password=123")
@@ -77,12 +84,14 @@ class DataHelper(sparkSession: SparkSession) {
                 + " %s) AS t"
                 .format(if (limit == -1) "" else "limit %s".format(limit)))
             .load()
+        println(s"Loaded cards table with ${_cards.count()} rows")
 
         _eventsByCategories = sparkSession.read
             .format("jdbc")
             .option("url", "jdbc:postgresql://localhost/callcenterdb?user=postgres&password=123")
             .option("dbtable", "(select id, category from (select callcenter.cards.id, addresstext, addresshouse, case when id in (select cardid from callcenter.cardcriminals where callcenter.cards.id= callcenter.cardcriminals.cardid) then 'criminals' when id in (select cardid from callcenter.carddeads where callcenter.cards.id= callcenter.carddeads.cardid) then 'deads' when id in (select cardid from callcenter.cardsufferers where callcenter.cards.id= callcenter.cardsufferers.cardid) then 'sufferers' when id in (select cardid from callcenter.cardfires where callcenter.cards.id= callcenter.cardfires.cardid) then 'fires' when id in (select cardid from callcenter.cardaccidents where callcenter.cards.id= callcenter.cardaccidents.cardid) then 'accidents' when id in (select cardid from callcenter.cardterrors where callcenter.cards.id= callcenter.cardterrors.cardid) then 'terrors' else '' end as category from callcenter.cards where addresstext like '%Казань,%' and addresshouse is not null order by id) as t1 where category != '') AS t")
             .load()
+        println(s"Loaded eventsByCategories with ${_eventsByCategories.count()} rows")
 
         _sufferers = sparkSession.read
             .format(source = "jdbc")
@@ -90,6 +99,7 @@ class DataHelper(sparkSession: SparkSession) {
             .option("dbtable", "(SELECT cards.id, cards.description"
                 + " FROM callcenter.cards INNER JOIN callcenter.cardsufferers ON cards.id = cardsufferers.cardid) AS t")
             .load()
+        println(s"Loaded sufferers with ${_sufferers.count()} rows")
 
         _forTraining = sparkSession.read
             .format(source = "jdbc")
@@ -107,6 +117,7 @@ class DataHelper(sparkSession: SparkSession) {
                     + "where addresstext like '%Казань,%' "
                     + "order by id) as k where category != '') as t")
             .load()
+        println(s"Loaded forTraining with ${_forTraining.count()} rows")
 
     }
 
