@@ -1,5 +1,6 @@
 package org.grint.glonassdatamining.app
 
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.mllib.fpm.{AssociationRules, FPGrowth}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions._
@@ -20,13 +21,21 @@ object App {
 
     private var dataHelper: DataHelper = _
 
+
     private val sparkSession: SparkSession = SparkSession
         .builder()
         .appName("GLONASS+112 data mining")
-        .master("local[4]")
+        .master("spark://10.114.22.20:7077")
         .config("spark.extraListeners","com.groupon.sparklint.SparklintListener")
+        .config("spark.driver.maxResultSize", "60g")
+        .config("spark.driver.memory", "60g")
+        .config("spark.executor.memory", "60g")
+        .config("spark.deploy-mode","cluster")
+        .config("spark.driver-class-path", "$JARS_COLON_SEP")
         .getOrCreate()
 
+    println(s"Spark drive maxResultSize is now set to "+
+      s"${sparkSession.sparkContext.getConf.get("spark.driver.maxResultSize")}")
     import sparkSession.implicits._
 
     private var configuration: Config = _

@@ -1,7 +1,7 @@
 package org.grint.glonassdatamining.datahelper
 
 import java.io.{File, FileOutputStream, OutputStream}
-import java.sql.Timestamp
+import java.sql.{DriverManager, Timestamp}
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -68,17 +68,18 @@ class DataHelper(sparkSession: SparkSession) {
             .option("treatEmptyValuesAsNulls", "true")
             .schema(_dbscanSchema)
             .load(getPath("/output_0.003eps_3600min_250000rows.csv"))*/
+        //println(DriverManager.getConnection("postgresql://10.114.22.30:5432","postgres","123").isClosed())
 
         _addressesWithGps = sparkSession.read
           .format("jdbc")
-          .option("url", "jdbc:postgresql://localhost/callcenterdb?user=postgres&password=123")
+          .option("url", "jdbc:postgresql://10.114.22.30:5432/callcenterdb?user=postgres&password=123")
           .option("dbtable", "(SELECT id, addresstext, latitude::numeric, longitude::numeric from callcenter.addresses_with_gps) as t")
           .load()
         println(s"Loaded addressesWithGps table with ${_addressesWithGps.count()} rows")
 
         _cards = sparkSession.read
             .format("jdbc")
-            .option("url", "jdbc:postgresql://localhost/callcenterdb?user=postgres&password=123")
+            .option("url", "jdbc:postgresql://10.114.22.30/callcenterdb?user=postgres&password=123")
             .option("dbtable", "(SELECT createddatetime::TIMESTAMP, id, description, gisexgroup::text "
                 + "FROM callcenter.cards WHERE addresstext like '%Казань,%' "
                 + " %s) AS t"
@@ -88,14 +89,14 @@ class DataHelper(sparkSession: SparkSession) {
 
         _eventsByCategories = sparkSession.read
             .format("jdbc")
-            .option("url", "jdbc:postgresql://localhost/callcenterdb?user=postgres&password=123")
+            .option("url", "jdbc:postgresql://10.114.22.30/callcenterdb?user=postgres&password=123")
             .option("dbtable", "(select id, category from (select callcenter.cards.id, addresstext, addresshouse, case when id in (select cardid from callcenter.cardcriminals where callcenter.cards.id= callcenter.cardcriminals.cardid) then 'criminals' when id in (select cardid from callcenter.carddeads where callcenter.cards.id= callcenter.carddeads.cardid) then 'deads' when id in (select cardid from callcenter.cardsufferers where callcenter.cards.id= callcenter.cardsufferers.cardid) then 'sufferers' when id in (select cardid from callcenter.cardfires where callcenter.cards.id= callcenter.cardfires.cardid) then 'fires' when id in (select cardid from callcenter.cardaccidents where callcenter.cards.id= callcenter.cardaccidents.cardid) then 'accidents' when id in (select cardid from callcenter.cardterrors where callcenter.cards.id= callcenter.cardterrors.cardid) then 'terrors' else '' end as category from callcenter.cards where addresstext like '%Казань,%' and addresshouse is not null order by id) as t1 where category != '') AS t")
             .load()
         println(s"Loaded eventsByCategories with ${_eventsByCategories.count()} rows")
 
         _sufferers = sparkSession.read
             .format(source = "jdbc")
-            .option("url", "jdbc:postgresql://localhost/callcenterdb?user=postgres&password=123")
+            .option("url", "jdbc:postgresql://10.114.22.30/callcenterdb?user=postgres&password=123")
             .option("dbtable", "(SELECT cards.id, cards.description"
                 + " FROM callcenter.cards INNER JOIN callcenter.cardsufferers ON cards.id = cardsufferers.cardid) AS t")
             .load()
@@ -103,7 +104,7 @@ class DataHelper(sparkSession: SparkSession) {
 
         _forTraining = sparkSession.read
             .format(source = "jdbc")
-            .option("url", "jdbc:postgresql://localhost/callcenterdb?user=postgres&password=123")
+            .option("url", "jdbc:postgresql://10.114.22.30/callcenterdb?user=postgres&password=123")
             .option("dbtable",
                 "(select id, description, category from (select callcenter.cards.id, description, addresshouse, "
                     + "case when id in (select cardid from callcenter.cardcriminals where callcenter.cards.id= callcenter.cardcriminals.cardid) then 'criminals' "
